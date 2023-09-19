@@ -11,6 +11,7 @@ import com.projects.app.repositories.UserRepo;
 import com.projects.app.services.UserService;
 import com.projects.app.services.mapper.UserMapper;
 import com.projects.app.commons.utils.Utils;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,14 +28,12 @@ public class UserServiceImpl implements UserService {
 	@Autowired
 	private UserRepo userRepo;
 
-	@Autowired
-	private UserMapper userMapper;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
-	private RoleRepo roleRepo;
+	private ModelMapper modelMapper;
 
 	@Autowired private EmailService emailService;
 
@@ -44,9 +43,9 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserDto createUser(UserDto userDto) {
-		User user = userMapper.toEntity(userDto);
+		User user = toEntity(userDto);
 		User savedUser = this.userRepo.save(user);
-		return userMapper.toDto(savedUser);
+		return toDto(savedUser);
 	}
 
 	@Override
@@ -61,7 +60,7 @@ public class UserServiceImpl implements UserService {
 		user.setAbout(userDto.getAbout());
 
 		User updatedUser = this.userRepo.save(user);
-		UserDto userDto1 = userMapper.toDto(updatedUser);
+		UserDto userDto1 = toDto(updatedUser);
 		return userDto1;
 	}
 
@@ -71,7 +70,7 @@ public class UserServiceImpl implements UserService {
 		User user = this.userRepo.findById(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("User", " Id ", userId));
 		user.setProfilePicture(user.getProfilePicture());
-		return userMapper.toDto(user);
+		return toDto(user);
 	}
 
 	@Override
@@ -99,7 +98,7 @@ public class UserServiceImpl implements UserService {
 	public List<UserDto> getAllUsers() {
 
 		List<User> users = this.userRepo.findAll();
-		return users.stream().map(user -> userMapper.toDto(user)).collect(Collectors.toList());
+		return users.stream().map(user -> toDto(user)).collect(Collectors.toList());
 	}
 
 	@Override
@@ -147,7 +146,7 @@ public class UserServiceImpl implements UserService {
 	public UserDto getUserByEmailPassword(String username, String password) {
 		User user = userRepo.findByEmail(username).get();
 		if(passwordEncoder.matches(password,user.getPassword())) {
-			return userMapper.toDto(user);
+			return toDto(user);
 		}else{
 			return null;
 		}
@@ -157,14 +156,21 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserDto registerNewUser(UserDto userDto) {
 
-		User user = userMapper.toEntity(userDto);
+		User user = toEntity(userDto);
 
 		// encoded the password
 		user.setPassword(this.passwordEncoder.encode(user.getPassword()));
 		User newUser = this.userRepo.save(user);
-		return userMapper.toDto(newUser);
+		return toDto(newUser);
 	}
 
+	private User toEntity(UserDto dto) {
+		return modelMapper.map(dto,User.class);
+	}
+
+	private UserDto toDto(User entity) {
+		return modelMapper.map(entity,UserDto.class);
+	}
 
 
 }
